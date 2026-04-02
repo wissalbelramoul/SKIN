@@ -1,0 +1,171 @@
+services:
+  traefik:
+    image: traefik:v2.11
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=skin_ms_net"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - consul
+    networks:
+      - skin_ms_net
+
+  consul:
+    image: hashicorp/consul:1.19
+    command: agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0
+    ports:
+      - "8500:8500"
+    networks:
+      - skin_ms_net
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: skin
+      RABBITMQ_DEFAULT_PASS: skin_secret
+    networks:
+      - skin_ms_net
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: skin
+      POSTGRES_PASSWORD: skin_db
+      POSTGRES_DB: skinapp
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U skin -d skinapp"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - skin_ms_net
+
+  auth:
+    build: ./auth
+    environment:
+      SQLITE_PATH: /data/auth.db
+      JWT_SECRET: ${JWT_SECRET:-change-me-super-secret-key-min-32-chars!!}
+      CONSUL_HTTP_ADDR: http://consul:8500
+      SERVICE_NAME: auth
+      SERVICE_PORT: "8000"
+    volumes:
+      - auth_data:/data
+    depends_on:
+      - consul
+    networks:
+      - skin_ms_net
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=skin_ms_net
+      - traefik.http.routers.auth.rule=PathPrefix(`/auth`)
+      - traefik.http.routers.auth.priority=100
+      - traefik.http.middlewares.auth-strip.stripprefix.prefixes=/auth
+      - traefik.http.routers.auth.middlewares=auth-strip
+      - traefik.http.services.auth.loadbalancer.server.port=8000
+
+  api:
+    build: ./api
+    environment:
+      DATABASE_URL: postgresql+psycopg2://skin:skin_db@postgres:5432/skinapp
+      JWT_SECRET: ${JWT_SECRET:-change-me-super-secret-key-min-32-chars!!}
+      RABBITMQ_URL: amqp://skin:skin_secret@rabbitmq:5672/
+      ML_INTERNAL_URL: http://ml:8000
+      WORKER_SECRET: ${WORKER_SECRET:-worker-shared-secret}
+      CONSUL_HTTP_ADDR: http://consul:8500
+      SERVICE_NAME: api
+      SERVICE_PORT: "8000"
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+      consul:
+        condition: service_started
+    networks:
+      - skin_ms_net
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=skin_ms_net
+      - traefik.http.routers.api.rule=PathPrefix(`/api/v1`)
+      - traefik.http.routers.api.priority=100
+      - traefik.http.middlewares.api-strip.stripprefix.prefixes=/api/v1
+      - traefik.http.routers.api.middlewares=api-strip
+      - traefik.http.services.api.loadbalancer.server.port=8000
+
+  ml:
+    build: ./ml
+    environment:
+      CONSUL_HTTP_ADDR: http://consul:8500
+      SERVICE_NAME: ml
+      SERVICE_PORT: "8000"
+    volumes:
+      - ../skin_disease_model_final.h5:/app/skin_disease_model_final.h5:ro
+    depends_on:
+      - consul
+    networks:
+      - skin_ms_net
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=skin_ms_net
+      - traefik.http.routers.ml.rule=PathPrefix(`/ml`)
+      - traefik.http.routers.ml.priority=100
+      - traefik.http.middlewares.ml-strip.stripprefix.prefixes=/ml
+      - traefik.http.routers.ml.middlewares=ml-strip
+      - traefik.http.services.ml.loadbalancer.server.port=8000
+
+  worker:
+    build: ./worker
+    environment:
+      DATABASE_URL: postgresql+psycopg2://skin:skin_db@postgres:5432/skinapp
+      RABBITMQ_URL: amqp://skin:skin_secret@rabbitmq:5672/
+      ML_INTERNAL_URL: http://ml:8000
+      API_INTERNAL_URL: http://api:8000
+      WORKER_SECRET: ${WORKER_SECRET:-worker-shared-secret}
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+      ml:
+        condition: service_started
+      api:
+        condition: service_started
+    networks:
+      - skin_ms_net
+
+  web:
+    build: ./frond-end
+    networks:
+      - skin_ms_net
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=skin_ms_net
+      - traefik.http.routers.web.rule=PathPrefix(`/`)
+      - traefik.http.routers.web.priority=1
+      - traefik.http.services.web.loadbalancer.server.port=80
+
+networks:
+  skin_ms_net:
+    name: skin_ms_net
+
+volumes:
+  pgdata:
+  uploads:
+  auth_data:

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skin AI - Premium Analysis</title>
+  <meta name="description" content="Plateforme intelligente pour la détection de lésions cutanées à partir d'images.">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="container flex justify-between items-center">
+      <a href="#" class="nav-brand">Skin <span style="color:white">AI</span></a>
+      <div class="nav-links">
+        <a href="#home">Accueil</a>
+        <a href="#try-it">Analyse Rapide</a>
+        <a href="#about">À propos</a>
+      </div>
+      <div class="nav-actions">
+        <!-- Will show Login if logged out, or Dashboard if logged in -->
+        <button id="nav-login-btn" class="btn btn-secondary" onclick="app.ui.toggleModal('login-modal')">Connexion</button>
+        <a id="nav-dash-btn" href="dashboard.html" class="btn btn-primary hidden">Tableau de bord</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section id="home" class="hero container flex flex-col justify-center">
+    <div class="grid grid-cols-2 gap-8 items-center mt-8">
+      <div class="hero-content fade-in">
+        <div class="badge mb-4"><span class="status-badge">Nouveau Modèle V2</span></div>
+        <h1>Découvrez l'avenir de la <br/><span class="text-gradient">dermatologie.</span></h1>
+        <p class="mb-8 font-medium">
+          Notre plateforme d'IA analyse les lésions cutanées en quelques secondes via un réseau de neurones convolutifs de pointe. 
+          Un assistant puissant pour les professionnels de la santé.
+        </p>
+        <div class="flex gap-4">
+          <a href="#try-it" class="btn btn-primary">Tester l'IA gratuitement</a>
+          <button class="btn btn-secondary" onclick="app.ui.toggleModal('register-modal')">Créer un compte</button>
+        </div>
+      </div>
+      <div class="hero-image glass-panel fade-in text-center flex justify-center items-center">
+        <!-- Re-using existing img.png but wrapped nicely. If missing, it fails gracefully. -->
+        <img src="img.png" alt="Vue d'analyse" class="preview-img" style="border: none; max-height: 400px; width: auto; border-radius: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5);" />
+      </div>
+    </div>
+  </section>
+
+  <!-- Try It / AI Section -->
+  <section id="try-it" class="container mt-8 mb-8 fade-in">
+    <div class="glass-card" style="max-width: 600px; margin: 0 auto; padding: 3rem;">
+      <div class="text-center mb-8">
+        <h2 class="mb-2">Analyse Instantanée</h2>
+        <p>Glissez-déposez l'image d'une lésion cutanée pour une évaluation locale via notre worker ML.</p>
+      </div>
+
+      <div id="drop-zone" class="drop-zone">
+        <span style="font-size: 2rem;">📸</span>
+        <p class="mt-2 text-muted">Apooyez ou glissez une image ici</p>
+        <input type="file" id="ai-file-input" accept="image/*" class="hidden">
+      </div>
+
+      <img id="ai-preview" class="preview-img hidden" alt="Prévisualisation">
+
+      <div id="ai-progress-container" class="progress-container hidden">
+        <div id="ai-progress-bar" class="progress-bar"></div>
+      </div>
+
+      <button id="ai-btn-predict" class="btn btn-primary mt-4" style="width: 100%;" disabled>Lancer la prévision</button>
+
+      <div id="ai-result" class="mt-4 text-center glass-card hidden border-0" style="background: rgba(16, 185, 129, 0.1);">
+        <!-- Results injected here -->
+      </div>
+    </div>
+  </section>
+
+  <!-- About Section -->
+  <section id="about" class="container mt-8 mb-8 fade-in">
+    <div class="text-center mb-8">
+      <h2>Pourquoi Skin AI ?</h2>
+      <p>Conçu par des ingénieurs, pensé pour les médecins.</p>
+    </div>
+    <div class="grid grid-cols-3 gap-6">
+      <div class="glass-card text-center">
+        <h1 class="mb-4">⚡</h1>
+        <h3>Microservices</h3>
+        <p class="text-sm mt-2">Architecture asynchrone ultra-rapide boostée par RabbitMQ et Consul.</p>
+      </div>
+      <div class="glass-card text-center">
+        <h1 class="mb-4">🛡️</h1>
+        <h3>Sécurisé</h3>
+        <p class="text-sm mt-2">Authentification forte (JWT) et hachage BCrypt pour les données des patients.</p>
+      </div>
+      <div class="glass-card text-center">
+        <h1 class="mb-4">🧠</h1>
+        <h3>Précis</h3>
+        <p class="text-sm mt-2">Modèle de Deep Learning pré-entraîné avec la précision pour des anomalies cutanées.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="mt-8 text-center text-muted" style="padding: 2rem 0; border-top: 1px solid var(--border-subtle);">
+    &copy; 2026 Skin AI. Tous droits réservés.
+  </footer>
+
+  <!-- Login Modal -->
+  <div id="login-modal" class="modal-overlay">
+    <div class="modal-content relative">
+      <button class="modal-close" onclick="app.ui.toggleModal('login-modal')">&times;</button>
+      <h2 class="mb-4">Bon retour</h2>
+      <form id="login-form">
+        <div class="input-group">
+          <label class="input-label">Email</label>
+          <input type="email" id="login-email" class="input-field" required>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Mot de passe</label>
+          <input type="password" id="login-password" class="input-field" required>
+        </div>
+        <div id="login-error" class="mb-4 text-center text-sm" style="color: #EF4444;"></div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Se connecter</button>
+      </form>
+      <p class="text-center mt-4 text-sm text-muted">
+        Pas de compte ? <a href="#" onclick="app.ui.toggleModal('login-modal'); app.ui.toggleModal('register-modal');" class="text-gradient hover:underline">S'inscrire</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Register Modal -->
+  <div id="register-modal" class="modal-overlay">
+    <div class="modal-content relative">
+      <button class="modal-close" onclick="app.ui.toggleModal('register-modal')">&times;</button>
+      <h2 class="mb-4">Créer un compte</h2>
+      <form id="register-form">
+        <div class="input-group">
+          <label class="input-label">Email</label>
+          <input type="email" id="reg-email" class="input-field" required>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Mot de passe</label>
+          <input type="password" id="reg-password" class="input-field" required>
+        </div>
+        <div id="reg-error" class="mb-4 text-center text-sm" style="color: #EF4444;"></div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">S'inscrire</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

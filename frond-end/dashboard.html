@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tableau de bord - Skin AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  
+  <script>
+    // Redirect if not authenticated (simple check)
+    if (!localStorage.getItem("api_token")) {
+      window.location.href = "index.html";
+    }
+  </script>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar" style="border-bottom: 1px solid var(--bg-panel);">
+    <div class="container flex justify-between items-center" style="max-width: 100%;">
+      <a href="index.html" class="nav-brand">Skin <span style="color:white">AI</span></a>
+      <div class="nav-actions">
+        <button onclick="window.api.auth.logout(); window.location.href='index.html'" class="btn btn-secondary border-0" style="padding: 0.5rem 1rem;">
+          Se déconnecter
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="dashboard fade-in">
+    <!-- Sidebar -->
+    <aside class="sidebar block">
+      <div class="mb-8 mt-4">
+        <h3 class="text-secondary" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Navigation</h3>
+      </div>
+      <a href="#" class="sidebar-link active" id="tab-btn-patients">Patients</a>
+      <a href="#" class="sidebar-link" id="tab-btn-analyses">Analyses</a>
+      
+      <div class="mt-8 pt-4" style="border-top: 1px solid var(--border-subtle)">
+         <p class="text-muted" style="font-size: 0.75rem;">Worker Asynchrone : Actif</p>
+         <p class="text-muted" style="font-size: 0.75rem;">Modèles ML : Chargés</p>
+      </div>
+    </aside>
+
+    <!-- Content Area -->
+    <main class="dashboard-content">
+      
+      <!-- Patients Section -->
+      <section id="section-patients">
+        <div class="flex justify-between items-center mb-8">
+          <h2>Gestion des Patients</h2>
+          <button class="btn btn-primary" onclick="app.ui.toggleModal('create-patient-modal')">+ Nouveau Patient</button>
+        </div>
+
+        <div class="glass-card" style="padding: 0;">
+          <ul id="patients-list" class="data-list" style="margin: 0; padding: 1rem;">
+            <!-- Patients injected here by app.js -->
+            <li class="text-muted justify-center border-0" style="background: transparent;">Chargement...</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Analyses Section -->
+      <section id="section-analyses" class="hidden">
+        <div class="flex justify-between items-center mb-8">
+          <h2>Historique des Analyses</h2>
+          <button class="btn btn-primary" onclick="app.ui.toggleModal('create-analysis-modal')">+ Nouvelle Analyse</button>
+        </div>
+
+        <div class="glass-card" style="padding: 0;">
+          <ul id="analyses-list" class="data-list" style="margin: 0; padding: 1rem;">
+            <!-- Analyses injected here by app.js -->
+            <li class="text-muted justify-center border-0" style="background: transparent;">Chargement...</li>
+          </ul>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Create Patient Modal -->
+  <div id="create-patient-modal" class="modal-overlay">
+    <div class="modal-content relative">
+      <button class="modal-close" onclick="app.ui.toggleModal('create-patient-modal')">&times;</button>
+      <h2 class="mb-4">Nouveau Patient</h2>
+      <form id="create-patient-form">
+        <div class="input-group">
+          <label class="input-label">Nom complet</label>
+          <input type="text" id="patient-name" class="input-field" required>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Notes (Optionnel)</label>
+          <textarea id="patient-notes" class="input-field" style="min-height: 100px; resize: vertical;"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary mt-4" style="width: 100%;">Enregistrer</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Create Analysis Modal -->
+  <div id="create-analysis-modal" class="modal-overlay">
+    <div class="modal-content relative">
+      <button class="modal-close" onclick="app.ui.toggleModal('create-analysis-modal')">&times;</button>
+      <h2 class="mb-4">Nouvelle Analyse</h2>
+      <form id="create-analysis-form">
+        <div class="input-group">
+          <label class="input-label">Patient</label>
+          <select id="analysis-patient-id" class="input-field relative" style="appearance: auto;" required>
+            <option value="">Sélectionner un patient...</option>
+          </select>
+        </div>
+        
+        <div class="input-group">
+          <label class="input-label">Image de la lésion</label>
+          <div id="analysis-drop-zone" class="drop-zone" style="padding: 1.5rem;">
+            <span>📸 Glissez une image</span>
+            <input type="file" id="analysis-file-input" accept="image/*" class="hidden" required>
+          </div>
+          <img id="analysis-preview" class="preview-img hidden" alt="Aperçu">
+        </div>
+
+        <button type="submit" class="btn btn-primary mt-4" style="width: 100%;">
+          Envoyer (Worker Asynchrone)
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

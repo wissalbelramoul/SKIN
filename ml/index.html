@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skin AI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          fontFamily: {
+            poppins: ["Poppins", "sans-serif"],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    html {
+      scroll-behavior: smooth;
+    }
+    body {
+      font-family: "Poppins", sans-serif;
+    }
+    .fade-in {
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+    .fade-in.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
+
+<!-- Navbar -->
+<nav class="fixed w-full z-10 bg-slate-900/85 backdrop-blur-md border-b border-slate-800/50">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="flex justify-between items-center h-16">
+      <div class="flex-shrink-0 font-bold text-xl text-emerald-400">Skin AI</div>
+      <div class="hidden md:flex space-x-6">
+        <a href="#home" class="text-slate-300 hover:text-emerald-400 transition">Accueil</a>
+        <a href="#aiskin" class="text-slate-300 hover:text-emerald-400 transition">Analyse</a>
+        <a href="#about" class="text-slate-300 hover:text-emerald-400 transition">À propos</a>
+        <a href="#contact" class="text-slate-300 hover:text-emerald-400 transition">Contact</a>
+      </div>
+      <div class="md:hidden">
+        <button type="button" id="menuButton" class="focus:outline-none text-slate-200 p-2" aria-label="Menu">☰</button>
+      </div>
+    </div>
+  </div>
+  <div id="mobileMenu" class="hidden md:hidden px-4 pb-4 border-t border-slate-800">
+    <a href="#home" class="block py-2 text-slate-300 hover:text-emerald-400">Accueil</a>
+    <a href="#aiskin" class="block py-2 text-slate-300 hover:text-emerald-400">Analyse</a>
+    <a href="#about" class="block py-2 text-slate-300 hover:text-emerald-400">À propos</a>
+    <a href="#contact" class="block py-2 text-slate-300 hover:text-emerald-400">Contact</a>
+  </div>
+</nav>
+
+<!-- Home Section -->
+<section id="home" class="relative flex flex-col md:flex-row items-center justify-center min-h-screen gap-10 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 px-6 pt-24 pb-16 md:pt-28">
+  <div class="flex-1 text-center md:text-left space-y-5 max-w-xl">
+    <h1 class="text-4xl md:text-5xl font-bold text-white tracking-tight">
+      Bienvenue sur <span class="text-emerald-400">Skin AI</span>
+    </h1>
+    <p class="text-lg text-slate-400 leading-relaxed">
+      Plateforme intelligente pour la détection de lésions cutanées à partir d’images, avec un modèle de deep learning.
+    </p>
+  </div>
+  <div class="flex-1 w-full max-w-lg hidden md:block">
+    <img src="img.png" alt="Illustration Skin AI" class="w-full h-auto rounded-2xl shadow-2xl shadow-emerald-950/40 border border-slate-800">
+  </div>
+</section>
+
+<!-- AI Skin Section -->
+<section id="aiskin" class="p-8 flex justify-center items-center bg-slate-950">
+  <div class="relative bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-2xl w-full max-w-md">
+    <div class="absolute top-0 right-0 w-14 h-14 border-t-4 border-r-4 border-emerald-500/60 rounded-tr-xl pointer-events-none"></div>
+    <div class="absolute bottom-0 left-0 w-14 h-14 border-b-4 border-l-4 border-emerald-500/60 rounded-bl-xl pointer-events-none"></div>
+
+    <div class="relative z-10">
+      <div class="flex justify-center mb-4">
+        <div class="bg-emerald-500/20 border border-emerald-500/40 p-3 rounded-xl">
+          <span class="text-3xl" aria-hidden="true">🧠</span>
+        </div>
+      </div>
+
+      <h2 class="text-2xl font-bold text-center mb-4 text-white">Détection IA</h2>
+      <p class="text-sm text-center text-slate-400 mb-6">
+        Téléversez une image pour analyser une lésion (API locale).
+      </p>
+
+      <div id="dropZone"
+           class="border-2 border-dashed border-slate-600 rounded-xl p-6 text-center cursor-pointer hover:bg-slate-800/80 hover:border-emerald-500/50 transition">
+        <p class="text-slate-300">➕ Choisir ou glisser une image</p>
+        <input type="file" id="fileInput" accept="image/*" hidden />
+      </div>
+
+      <img id="preview" class="mt-4 rounded-lg hidden w-full object-cover max-h-48 border border-slate-700" alt="Aperçu"/>
+
+      <div class="w-full bg-slate-800 rounded-full h-2.5 mt-4 hidden overflow-hidden" id="progressContainer">
+        <div id="progressBar" class="bg-gradient-to-r from-emerald-600 to-emerald-400 h-2.5 rounded-full w-0 transition-all duration-500"></div>
+      </div>
+
+      <button type="button" onclick="uploadImage()"
+              class="mt-6 w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-900/30">
+        Lancer la prédiction <span>→</span>
+      </button>
+
+      <div id="result" class="mt-4 text-center font-medium text-slate-200"></div>
+    </div>
+  </div>
+</section>
+
+<!-- About Section -->
+<section id="about" class="p-8 md:p-12 bg-slate-900 border-y border-slate-800 max-w-5xl mx-4 md:mx-auto rounded-3xl text-center fade-in my-8">
+  <h2 class="text-3xl md:text-4xl font-extrabold mb-6 text-white">
+    À propos du projet
+  </h2>
+  <p class="text-slate-400 text-lg leading-relaxed mb-8">
+    Ce projet s’appuie sur le <span class="font-semibold text-emerald-400">deep learning</span> pour analyser des images dermatologiques
+    et proposer une aide à la classification des lésions.
+  </p>
+
+  <div class="grid md:grid-cols-3 gap-6 mt-6">
+    <div class="fade-in bg-slate-950 border border-slate-800 p-6 rounded-2xl transform transition duration-300 hover:scale-[1.02] hover:border-emerald-500/30">
+      <div class="text-3xl mb-2">⚡</div>
+      <h3 class="font-bold mb-2 text-white">Rapide</h3>
+      <p class="text-sm text-slate-500">Analyse en quelques secondes</p>
+    </div>
+    <div class="fade-in bg-slate-950 border border-slate-800 p-6 rounded-2xl transform transition duration-300 hover:scale-[1.02] hover:border-emerald-500/30">
+      <div class="text-3xl mb-2">🧠</div>
+      <h3 class="font-bold mb-2 text-white">Intelligent</h3>
+      <p class="text-sm text-slate-500">Réseau de neurones entraîné</p>
+    </div>
+    <div class="fade-in bg-slate-950 border border-slate-800 p-6 rounded-2xl transform transition duration-300 hover:scale-[1.02] hover:border-emerald-500/30">
+      <div class="text-3xl mb-2">🎯</div>
+      <h3 class="font-bold mb-2 text-white">Indicatif</h3>
+      <p class="text-sm text-slate-500">Ne remplace pas un avis médical</p>
+    </div>
+  </div>
+</section>
+
+<!-- Contact Section -->
+<section id="contact" class="flex justify-center items-center min-h-[70vh] bg-slate-950 p-6 pb-20">
+  <div class="w-full max-w-md bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl">
+    <h2 class="text-2xl font-bold mb-6 text-center text-white">
+      Contact
+    </h2>
+    <form id="contactForm" class="space-y-5">
+      <div>
+        <label for="email" class="block mb-1 text-slate-400 text-sm">E-mail</label>
+        <input type="email" id="email"
+          class="w-full p-3 rounded-xl border border-slate-700 bg-slate-950 text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition"
+          placeholder="vous@exemple.com"
+          required>
+      </div>
+      <div>
+        <label for="message" class="block mb-1 text-slate-400 text-sm">Message (max 100 mots)</label>
+        <textarea id="message" rows="4"
+          class="w-full p-3 rounded-xl border border-slate-700 bg-slate-950 text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition resize-y"
+          placeholder="Votre message…"
+          required></textarea>
+      </div>
+      <button type="submit"
+        class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-xl transition">
+        Envoyer
+      </button>
+    </form>
+  </div>
+</section>
+
+<script>
+  const elements = document.querySelectorAll(".fade-in");
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) entry.target.classList.add("show");
+    });
+  });
+  elements.forEach((el) => observer.observe(el));
+
+  const menuButton = document.getElementById("menuButton");
+  const mobileMenu = document.getElementById("mobileMenu");
+  menuButton.addEventListener("click", () => mobileMenu.classList.toggle("hidden"));
+
+  const contactForm = document.getElementById("contactForm");
+  contactForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const email = document.getElementById("email").value;
+    const message = document.getElementById("message").value;
+    const wordCount = message.trim().split(/\s+/).filter(Boolean).length;
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      alert("Veuillez entrer un e-mail valide");
+      return;
+    }
+    if (wordCount > 100) {
+      alert("Le message ne doit pas dépasser 100 mots");
+      return;
+    }
+    alert("Message enregistré (démo). Merci !");
+    contactForm.reset();
+  });
+
+  let selectedFile = null;
+  const dropZone = document.getElementById("dropZone");
+  const fileInput = document.getElementById("fileInput");
+
+  dropZone.onclick = () => fileInput.click();
+  fileInput.onchange = (e) => handleFile(e.target.files[0]);
+  dropZone.ondragover = (e) => {
+    e.preventDefault();
+    dropZone.classList.add("bg-slate-800");
+  };
+  dropZone.ondragleave = () => dropZone.classList.remove("bg-slate-800");
+  dropZone.ondrop = (e) => {
+    e.preventDefault();
+    dropZone.classList.remove("bg-slate-800");
+    handleFile(e.dataTransfer.files[0]);
+  };
+
+  function handleFile(file) {
+    if (!file) return;
+    selectedFile = file;
+    const preview = document.getElementById("preview");
+    preview.src = URL.createObjectURL(file);
+    preview.classList.remove("hidden");
+  }
+
+  /** Même origine si la page vient de http://127.0.0.1:8000/ ; sinon API absolue (fichier local). */
+  function predictApiUrl() {
+    if (location.protocol === "file:") return "http://127.0.0.1:8000/api/predict/";
+    return "/api/predict/";
+  }
+
+  async function uploadImage() {
+    if (!selectedFile) {
+      alert("Choisissez une image");
+      return;
+    }
+    const formData = new FormData();
+    formData.append("image", selectedFile);
+
+    const progressBar = document.getElementById("progressBar");
+    const container = document.getElementById("progressContainer");
+    container.classList.remove("hidden");
+    progressBar.style.width = "0%";
+
+    let interval = setInterval(() => {
+      const w = parseFloat(progressBar.style.width) || 0;
+      progressBar.style.width = Math.min(w + 10, 90) + "%";
+    }, 200);
+
+    try {
+      const response = await fetch(predictApiUrl(), {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) {
+        const t = await response.text();
+        throw new Error("Serveur " + response.status + (t ? " — " + t.slice(0, 120) : ""));
+      }
+      const data = await response.json();
+      clearInterval(interval);
+      progressBar.style.width = "100%";
+      showResult(data.top3);
+      setTimeout(() => container.classList.add("hidden"), 500);
+    } catch (err) {
+      clearInterval(interval);
+      progressBar.style.width = "0%";
+      container.classList.add("hidden");
+      let msg = err && err.message ? err.message : String(err);
+      if (msg === "Failed to fetch") {
+        msg +=
+          "\n\n• Lancez le serveur : python server.py (ou uvicorn server:app --host 127.0.0.1 --port 8000)\n" +
+          "• Ouvrez la page via http://127.0.0.1:8000/ (évitez d’ouvrir index.html en double-clic / file://).";
+      }
+      alert("Erreur : " + msg);
+    }
+  }
+
+  function showResult(top3) {
+    if (!top3 || !top3.length) {
+      document.getElementById("result").innerHTML =
+        "<p class='text-slate-500 text-sm'>Aucun résultat.</p>";
+      return;
+    }
+    let html = "<h3 class='font-bold text-emerald-400 mb-2'>Top prédictions</h3>";
+    top3.forEach((item) => {
+      html +=
+        "<div class='mt-2 p-3 bg-slate-800 border border-slate-700 rounded-lg text-slate-200 text-sm'>" +
+        item.label +
+        " — <span class='text-emerald-400 font-semibold'>" +
+        item.confidence +
+        "%</span></div>";
+    });
+    document.getElementById("result").innerHTML = html;
+  }
+</script>
+
+</body>
+</html>
