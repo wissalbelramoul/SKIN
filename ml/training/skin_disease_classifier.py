@@ -16,7 +16,7 @@ ModelCheckpoint = tf.keras.callbacks.ModelCheckpoint
 MobileNetV2 = tf.keras.applications.MobileNetV2
 
 
-ARTIFACTS_DIR = Path(__file__).resolve().parent / "training_artifacts"
+ARTIFACTS_DIR = Path(__file__).resolve().parent.parent / "training_artifacts"
 ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
 
 # -------------------------------
@@ -36,7 +36,7 @@ if val_key not in ds:
 # 2️⃣ Paramètres
 # -------------------------------
 img_height, img_width = 224, 224
-batch_size = 32
+batch_size = 10
 label_feature = ds["train"].features["label"]
 class_names = list(label_feature.names)
 num_classes = len(class_names)
