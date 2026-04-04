@@ -17,7 +17,7 @@ from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 # -------------------------------
 STATIC_DIR = Path(__file__).resolve().parent
 
-MODEL_PATH = STATIC_DIR / "training_artifacts" / "skin_model.h5"
+MODEL_PATH = STATIC_DIR / "training_artifacts" / "skin_20model.h5"
 
 
 model: Optional[object] = None
