@@ -25,7 +25,7 @@ ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
 
 # 1️⃣ Dataset Hugging Face
 # -------------------------------
-ds = load_dataset("isic_2020"")
+ds = load_dataset("isic_2020")
 print(ds)
 
 val_key = "validation" if "validation" in ds else "test"
