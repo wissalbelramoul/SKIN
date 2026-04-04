@@ -22,7 +22,7 @@ ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
 
 # -------------------------------
 # 1️⃣ Dataset Hugging Face
-ds = load_dataset("matthijs/isic_2019")
+ds = load_dataset("isic_2020")
 val_key = "validation" if "validation" in ds else "test"
 if val_key not in ds:
     raise KeyError("Aucun split validation/test trouvé dans le dataset.")
