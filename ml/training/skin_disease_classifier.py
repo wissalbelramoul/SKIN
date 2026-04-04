@@ -1,40 +1,34 @@
-# skin_disease_classifier.py
-# Dataset HF -> tf.data, transfer learning MobileNetV2, métriques TP (confusion, P/R/F1, courbes).
+# skin_disease_classifier_colab.py
 import json
 from pathlib import Path
-
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from datasets import load_dataset
 from sklearn.metrics import classification_report, confusion_matrix
 
+# -------------------------------
+# TensorFlow shortcuts
 layers = tf.keras.layers
 models = tf.keras.models
 EarlyStopping = tf.keras.callbacks.EarlyStopping
 ModelCheckpoint = tf.keras.callbacks.ModelCheckpoint
 MobileNetV2 = tf.keras.applications.MobileNetV2
 
-
-ARTIFACTS_DIR = Path(__file__).resolve().parent.parent / "training_artifacts"
+# -------------------------------
+# Artifacts
+ARTIFACTS_DIR = Path("/content/training_artifacts")
 ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
 
 # -------------------------------
-
-
-
 # 1️⃣ Dataset Hugging Face
-# -------------------------------
 ds = load_dataset("isic_2020")
-print(ds)
-
 val_key = "validation" if "validation" in ds else "test"
 if val_key not in ds:
     raise KeyError("Aucun split validation/test trouvé dans le dataset.")
 
 # -------------------------------
 # 2️⃣ Paramètres
-# -------------------------------
 img_height, img_width = 224, 224
 batch_size = 32
 label_feature = ds["train"].features["label"]
@@ -42,17 +36,12 @@ class_names = list(label_feature.names)
 num_classes = len(class_names)
 AUTOTUNE = tf.data.AUTOTUNE
 
-# Export pour aligner server.py / inférence
+# Export class names
 _names_json = json.dumps(class_names, ensure_ascii=False, indent=2)
 (ARTIFACTS_DIR / "class_names.json").write_text(_names_json, encoding="utf-8")
-# Copie à la racine du projet (plus simple pour Docker / déploiement)
-Path(__file__).resolve().parent.joinpath("class_names.json").write_text(
-    _names_json, encoding="utf-8"
-)
 
 # -------------------------------
-# 3️⃣ tf.data depuis HF (sparse labels + loss sparse_categorical_crossentropy)
-# -------------------------------
+# 3️⃣ tf.data depuis HF (avec repeat)
 def make_tf_dataset(split: str, shuffle: bool) -> tf.data.Dataset:
     split_ds = ds[split]
     n = len(split_ds)
@@ -70,32 +59,34 @@ def make_tf_dataset(split: str, shuffle: bool) -> tf.data.Dataset:
         tf.TensorSpec(shape=(), dtype=tf.int32),
     )
     td = tf.data.Dataset.from_generator(generator, output_signature=sig)
+    
     if shuffle:
         td = td.shuffle(min(10_000, n), reshuffle_each_iteration=True)
-    return td.batch(batch_size).prefetch(AUTOTUNE)
-
+    
+    td = td.repeat()  # <- répète indéfiniment
+    td = td.batch(batch_size).prefetch(AUTOTUNE)
+    return td
 
 train_dataset = make_tf_dataset("train", shuffle=True)
 val_dataset = make_tf_dataset(val_key, shuffle=False)
 
+steps_per_epoch = len(ds["train"]) // batch_size
+validation_steps = len(ds[val_key]) // batch_size
+
 # -------------------------------
-# 4️⃣ Augmentation + MobileNetV2 (transfer learning)
-# -------------------------------
-data_augmentation = tf.keras.Sequential(
-    [
-        layers.RandomFlip("horizontal"),
-        layers.RandomRotation(0.1),
-        layers.RandomZoom(0.1),
-        layers.RandomHeight(0.1),
-        layers.RandomWidth(0.1),
-    ],
-    name="data_augmentation",
-)
+# 4️⃣ Augmentation + MobileNetV2
+data_augmentation = tf.keras.Sequential([
+    layers.RandomFlip("horizontal"),
+    layers.RandomRotation(0.1),
+    layers.RandomZoom(0.1),
+    layers.RandomHeight(0.1),
+    layers.RandomWidth(0.1),
+], name="data_augmentation")
 
 base_model = MobileNetV2(
     weights="imagenet",
     include_top=False,
-    input_shape=(img_height, img_width, 3),
+    input_shape=(img_height, img_width, 3)
 )
 base_model.trainable = False
 
@@ -124,19 +115,18 @@ callbacks = [
 ]
 
 # -------------------------------
-# 5️⃣ Entraînement — phase 1 (tête seule)
-# -------------------------------
-history = None
+# 5️⃣ Entraînement phase 1
 history = model.fit(
     train_dataset,
     validation_data=val_dataset,
+    steps_per_epoch=steps_per_epoch,
+    validation_steps=validation_steps,
     epochs=15,
     callbacks=callbacks,
 )
 
 # -------------------------------
 # 6️⃣ Fine-tuning
-# -------------------------------
 base_model.trainable = True
 model.compile(
     optimizer=tf.keras.optimizers.Adam(1e-5),
@@ -144,19 +134,18 @@ model.compile(
     metrics=["accuracy"],
 )
 
-history_ft = None
 history_ft = model.fit(
     train_dataset,
     validation_data=val_dataset,
+    steps_per_epoch=steps_per_epoch,
+    validation_steps=validation_steps,
     epochs=5,
     callbacks=callbacks,
 )
 
-
 # -------------------------------
-# 7️⃣ Courbes loss / accuracy
-# -------------------------------
-def plot_training_curves(h1: tf.keras.callbacks.History, h2: tf.keras.callbacks.History) -> Path:
+# 7️⃣ Courbes
+def plot_training_curves(h1, h2):
     def merge_series(key: str):
         return list(h1.history.get(key, [])) + list(h2.history.get(key, []))
 
@@ -189,11 +178,12 @@ def plot_training_curves(h1: tf.keras.callbacks.History, h2: tf.keras.callbacks.
     plt.close(fig)
     return out
 
+curves_path = plot_training_curves(history, history_ft)
+print(f"Courbes sauvegardées : {curves_path}")
 
 # -------------------------------
-# 8️⃣ Matrice de confusion + précision / rappel / F1
-# -------------------------------
-def collect_predictions(m: tf.keras.Model, vds: tf.data.Dataset):
+# 8️⃣ Matrice de confusion + classification report
+def collect_predictions(m, vds):
     y_true = []
     y_pred = []
     for x_batch, y_batch in vds:
@@ -202,8 +192,15 @@ def collect_predictions(m: tf.keras.Model, vds: tf.data.Dataset):
         y_true.append(y_batch.numpy())
     return np.concatenate(y_true), np.concatenate(y_pred)
 
+y_true, y_pred = collect_predictions(model, val_dataset)
+cm = confusion_matrix(y_true, y_pred, labels=np.arange(num_classes))
 
-def plot_confusion(cm: np.ndarray, labels: list[str]) -> Path:
+report_txt = classification_report(y_true, y_pred, target_names=class_names, digits=4)
+report_path = ARTIFACTS_DIR / "classification_report.txt"
+report_path.write_text(report_txt, encoding="utf-8")
+print(report_txt)
+
+def plot_confusion(cm, labels):
     fig, ax = plt.subplots(figsize=(14, 12))
     im = ax.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
     ax.figure.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
@@ -221,11 +218,8 @@ def plot_confusion(cm: np.ndarray, labels: list[str]) -> Path:
     for i in range(cm.shape[0]):
         for j in range(cm.shape[1]):
             ax.text(
-                j,
-                i,
-                format(cm[i, j], "d"),
-                ha="center",
-                va="center",
+                j, i, format(cm[i, j], "d"),
+                ha="center", va="center",
                 color="white" if cm[i, j] > thresh else "black",
                 fontsize=8,
             )
@@ -235,32 +229,12 @@ def plot_confusion(cm: np.ndarray, labels: list[str]) -> Path:
     plt.close(fig)
     return out
 
-
-if history is not None and history_ft is not None:
-    curves_path = plot_training_curves(history, history_ft)
-    print(f"Courbes sauvegardées : {curves_path}")
-
-y_true, y_pred = collect_predictions(model, val_dataset)
-cm = confusion_matrix(y_true, y_pred, labels=np.arange(num_classes))
-
-report_txt = classification_report(
-    y_true,
-    y_pred,
-    target_names=class_names,
-    digits=4,
-)
-report_path = ARTIFACTS_DIR / "classification_report.txt"
-report_path.write_text(report_txt, encoding="utf-8")
-print(report_txt)
-
 cm_path = plot_confusion(cm, class_names)
 print(f"Matrice de confusion : {cm_path}")
-print(f"Rapport P/R/F1 : {report_path}")
 
 # -------------------------------
-# 9️⃣ Sauvegarde modèle pour l’API
-# -------------------------------
-final_path = Path(__file__).resolve().parent / "skin_20model_best.h5"
+# 9️⃣ Sauvegarde modèle final
+final_path = Path("/content/skin_20model_best.h5")
 model.save(str(final_path))
 print(f"✅ Modèle final : {final_path}")
 print(f"✅ Noms de classes : {ARTIFACTS_DIR / 'class_names.json'}")
