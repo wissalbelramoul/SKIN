@@ -86,8 +86,8 @@ data_aug = tf.keras.Sequential([
 # =========================
 # 5️⃣ Focal Loss (🔥 IMPORTANT for imbalance)
 # =========================
-loss_fn = tf.keras.losses.SparseCategoricalFocalCrossentropy(
-    gamma=2.0,
+
+loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(
     label_smoothing=0.1
 )
 
