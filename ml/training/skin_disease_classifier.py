@@ -224,5 +224,8 @@ print(confusion_matrix(y_true, y_pred))
 # 💾 SAVE FINAL MODEL
 # =========================
 model.save("skin_disease.keras")
+from google.colab import drive
+drive.mount('/content/drive')
 
+model.save("/content/drive/MyDrive/skin_disease.keras")
 print("\ntraining completed")
