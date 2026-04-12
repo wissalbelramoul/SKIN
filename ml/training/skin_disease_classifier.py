@@ -225,4 +225,4 @@ print(confusion_matrix(y_true, y_pred))
 # =========================
 model.save("skin_disease.keras")
 
-print("\n✅ PRO MAX training completed")
+print("\ntraining completed")
