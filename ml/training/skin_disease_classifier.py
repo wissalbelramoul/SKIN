@@ -223,6 +223,6 @@ print(confusion_matrix(y_true, y_pred))
 # =========================
 # 💾 SAVE FINAL MODEL
 # =========================
-model.save("skin_disease_PRO_MAX.keras")
+model.save("skin_disease.keras")
 
 print("\n✅ PRO MAX training completed")
